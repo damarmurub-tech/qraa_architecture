@@ -17,3 +17,9 @@
 git clone [https://github.com/damarmurub-tech/qraa_architecture.git](https://github.com/damarmurub-tech/qraa_architecture.git)
 cd qraa_architecture
 cargo build --release
+## 🪙 Dukung via Kripto (Crypto)
+Jika Anda ingin memberikan apresiasi melalui aset kripto, Anda dapat mengirimkannya ke alamat berikut:
+
+- **Bitcoin (BTC):** `[13n5hU5B2SHfKCDg4GnZUnec1o32TYRFku]`
+- **Ethereum / USDT (ERC-20):** `[0x44fd99c7acd2ff83ef33d03f9768e9244fa81c39]`
+- **Solana (SOL):** `[H9gBttSkCcjQWbAq8V7o9TigCo3eM9HTiAY5nh5VbWEK]`
