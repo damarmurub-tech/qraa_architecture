@@ -39,3 +39,48 @@ fn main() {
     handle.join().unwrap();
     println!("=== KONEKSI KORIDOR JIWA STABIL DAN BERTAHAN ABADI ===");
 }
+use std::sync::{Arc, Mutex};
+use std::thread;
+use std::time::Duration;
+
+#[derive(Debug)]
+struct QRAACore {
+    tier: u8,
+    magicules: u32,
+}
+
+fn main() {
+    println!("🚀 Initializing QRAA Architecture: Autonomous Cognitive Core...");
+
+    // Inisialisasi core dengan manajemen energi awal
+    let core = Arc::new(Mutex::new(QRAACore {
+        tier: 1,
+        magicules: 1000,
+    }));
+
+    let mut handles = vec![];
+
+    // Soul Corridor: Simulasi konkurensi asinkron menggunakan Arc<Mutex<T>>
+    for i in 1..=3 {
+        let core_clone = Arc::clone(&core);
+        let handle = thread::spawn(move || {
+            thread::sleep(Duration::from_millis(400 * i));
+            let mut data = core_clone.lock().unwrap();
+            data.tier += 1;
+            data.magicules += 750 * i as u32;
+            println!(
+                "⚡ [Soul Corridor Thread {}] Evolutionary Tier updated to: {} | Magicules allocated: {}",
+                i, data.tier, data.magicules
+            );
+        });
+        handles.push(handle);
+    }
+
+    // Menunggu seluruh thread selesai mengeksekusi
+    for handle in handles {
+        handle.join().unwrap();
+    }
+
+    let final_state = core.lock().unwrap();
+    println!("✨ Final Singularity Matrix State -> Tier: {}, Total Magicules: {}", final_state.tier, final_state.magicules);
+}
