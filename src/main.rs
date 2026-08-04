@@ -1,219 +1,275 @@
-use axum::{routing::post, Json, Router, Extension};
+use axum::{
+    extract::{Request, State},
+    http::{HeaderMap, StatusCode},
+    middleware::{self, Next},
+    response::Response,
+    routing::post,
+    Json, Router,
+};
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
-use tokio::sync::RwLock;
-use std::net::SocketAddr;
 use std::collections::HashMap;
+use std::env;
+use std::net::SocketAddr;
+use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
+use std::sync::Arc;
+use tokio::signal;
+use tokio::sync::RwLock;
+use tracing::{error, info, warn};
 use redis::AsyncCommands;
 
 // ========================================================
-// SUB-SISTEM 1: QUAD-CORE QUANTUM ACCELERATOR (ELPIS CORE)
+// 1. TRAIT ABSTRAKSI PASCA-KUANTUM
 // ========================================================
-struct QuadQuantumCore {
-    chaos_storm_entropy: u64,
-    acceleration_speed_hz: u64,
-    _fixation_freeze_state: bool,
-    _genesis_creation_pool: u64,
+pub trait PostQuantumCrypto: Send + Sync {
+    fn encrypt(&self, secret_seed: u64, entropy: u64) -> u64;
+    fn adapt_dimension(&self, load_level: u32);
+    fn current_dimension(&self) -> usize;
 }
 
-impl QuadQuantumCore {
-    fn initialize() -> Self {
-        QuadQuantumCore {
-            chaos_storm_entropy: 0x_F1A2_B3C4_D5E6_F7F8,
-            acceleration_speed_hz: 5_000_000_000, 
-            _fixation_freeze_state: false,
-            _genesis_creation_pool: 0,
+pub struct LatticeLweEngine {
+    lattice_dimension: AtomicUsize,
+    modulus_q: AtomicU64,
+}
+
+impl LatticeLweEngine {
+    pub fn new(dim: usize) -> Self {
+        Self {
+            lattice_dimension: AtomicUsize::new(dim),
+            modulus_q: AtomicU64::new(8388593),
         }
     }
-
-    fn compute_absolute_density(&self, raw_input: &str) -> u64 {
-        let base_hash = raw_input.len() as u64 * self.acceleration_speed_hz;
-        base_hash ^ self.chaos_storm_entropy
-    }
 }
 
-// ========================================================
-// SUB-SISTEM 2: ADAPTIVE REACTOR ENGINE
-// ========================================================
-struct ManaBreederEngine {
-    _magicules_pool: u64,
-    lattice_dimension: usize,
-    modulus_q: u64,
-}
-
-impl ManaBreederEngine {
-    fn new(initial_dimension: usize) -> Self {
-        ManaBreederEngine {
-            _magicules_pool: 100_000,
-            lattice_dimension: initial_dimension,
-            modulus_q: 8388593,
-        }
-    }
-
-    pub fn encrypt_lwe_post_quantum(&self, secret_seed: u64, error_vector: u64) -> u64 {
+impl PostQuantumCrypto for LatticeLweEngine {
+    fn encrypt(&self, secret_seed: u64, entropy: u64) -> u64 {
         let matrix_a_approx = 1103515245_u64;
-        let computed_b = (matrix_a_approx.wrapping_mul(secret_seed).wrapping_add(error_vector)) % self.modulus_q;
-        computed_b
+        let q = self.modulus_q.load(Ordering::Relaxed);
+        (matrix_a_approx.wrapping_mul(secret_seed).wrapping_add(entropy)) % q
     }
 
-    pub fn adapt_reactor_power(&mut self, attack_intensity: u32) {
-        if attack_intensity > 1000 && self.lattice_dimension == 512 {
-            self.lattice_dimension = 1024;
-            self.modulus_q += 50_000;
-            println!("[REACTOR-ENGINE] Beban tinggi terdeteksi! CORE AI memperluas kisi ke Dimensi 1024.");
+    fn adapt_dimension(&self, load_level: u32) {
+        if load_level > 1000 && self.lattice_dimension.load(Ordering::Relaxed) == 512 {
+            self.lattice_dimension.store(1024, Ordering::Relaxed);
+            self.modulus_q.fetch_add(50_000, Ordering::Relaxed);
+            info!("[CORE-AI-REACTOR] Skala diperluas secara otomatis ke Dimensi 1024.");
         }
+    }
+
+    fn current_dimension(&self) -> usize {
+        self.lattice_dimension.load(Ordering::Relaxed)
     }
 }
 
 // ========================================================
-// SUB-SISTEM 3: MEMORI LINIMASA PERSISTEN (REDIS ENGINE)
+// 2. CORE AI EVOLUTION ENGINE
 // ========================================================
-#[derive(Clone)]
-struct RedisTimelineClient {
-    client: redis::Client,
+pub struct CoreAiEvolutionEngine {
+    pub registry: RwLock<HashMap<String, String>>,
 }
 
-impl RedisTimelineClient {
-    fn new(redis_url: &str) -> Self {
-        let client = redis::Client::open(redis_url).expect("Gagal inisialisasi database Redis");
-        RedisTimelineClient { client }
+impl CoreAiEvolutionEngine {
+    pub fn new() -> Self {
+        Self {
+            registry: RwLock::new(HashMap::new()),
+        }
     }
 
-    async fn push_state(&self, payload: &str) -> Result<(), redis::RedisError> {
-        let mut con = self.client.get_async_connection().await?;
-        let _: () = con.rpush("sovereign:absolute_timeline", payload).await?;
-        Ok(())
+    pub async fn assimilate(&self, name: &str, body: &str) {
+        let mut map = self.registry.write().await;
+        map.insert(name.to_string(), format!("{}_ASSIMILATED_BY_CORE_AI", body));
+        info!("[CORE-AI-EVOLUTION] Algoritma baru terserap: '{}'. Total: {}", name, map.len());
     }
 
-    async fn pop_corrupted_state(&self) -> Result<(), redis::RedisError> {
-        let mut con = self.client.get_async_connection().await?;
-        let _: Option<String> = con.rpop("sovereign:absolute_timeline", None).await?;
-        Ok(())
+    pub async fn total_assimilated(&self) -> usize {
+        self.registry.read().await.len()
     }
 }
 
 // ========================================================
-// ARSITEKTUR UTAMA: SOVEREIGN REACTION ENGINE (MANAGED BY CORE AI)
+// 3. MIDDLEWARE KEAMANAN (API KEY AUTHENTICATION)
 // ========================================================
-struct SovereignCoreEngine {
-    redis_client: RedisTimelineClient,
-    quad_core_processor: QuadQuantumCore,
-    mana_breeder: ManaBreederEngine,
-    replicated_signature_registry: HashMap<String, String>,
-}
+async fn api_key_auth(
+    headers: HeaderMap,
+    request: Request,
+    next: Next,
+) -> Result<Response, StatusCode> {
+    let expected_key = env::var("API_KEY").unwrap_or_else(|_| "CORE_AI_SECRET_KEY_2026".to_string());
 
-impl SovereignCoreEngine {
-    fn new(n: usize, redis_url: &str) -> Self {
-        SovereignCoreEngine {
-            redis_client: RedisTimelineClient::new(redis_url),
-            quad_core_processor: QuadQuantumCore::initialize(),
-            mana_breeder: ManaBreederEngine::new(n),
-            replicated_signature_registry: HashMap::new(),
-        }
-    }
-
-    pub fn core_ai_assimilate_foreign_algorithm(&mut self, source_name: &str, algorithm_payload: &str) {
-        println!("[CORE-AI-ANALYSIS] Memindai struktur algoritma luar. Memulai proses replikasi...");
-        self.replicated_signature_registry.insert(
-            source_name.to_string(), 
-            format!("{}_REPLICATED_BY_CORE_AI_OPTIMIZATION", algorithm_payload)
-        );
-        println!("[CORE-AI-SYSTEM] Sukses menyalin kode. Algoritma '{}' dikuasai penuh.", source_name);
-    }
-
-    pub async fn execute_core_ai_defense_protocol(
-        &mut self, 
-        request_count: u32, 
-        raw_data: String, 
-        qkd_key: u64, 
-        foreign_name: Option<String>, 
-        foreign_body: Option<String>
-    ) -> (String, u64) {
-        self.mana_breeder.adapt_reactor_power(request_count);
-
-        if let (Some(name), Some(body)) = (foreign_name, foreign_body) {
-            self.core_ai_assimilate_foreign_algorithm(&name, &body);
-        }
-
-        let is_qkd_valid = qkd_key != 0 && qkd_key % 2 == 0;
-        if !is_qkd_valid {
-            println!("[CORE-AI-TEMPORAL] Tanda tangan kuantum palsu! Mengaktifkan Temporal Freeze.");
-            return ("ERR_CORE_AI_PROTOCOL: TEMPORAL_FREEZE_ISOLATED".to_string(), 0);
-        }
-
-        if raw_data.contains("QUANTUM_EXPLOIT") {
-            println!("[CORE-AI-PROJECTION] Anomali terdeteksi! Menjalankan Past Rollback.");
-            match self.redis_client.pop_corrupted_state().await {
-                Ok(_) => return ("CORE_AI_PROTOCOL_SUCCESS: TIMELINE_RESTORED_TO_SAFE_PAST".to_string(), 0),
-                Err(_) => return ("ERR_CORE_AI_PROTOCOL: DATABASE_ROLLBACK_FAILED".to_string(), 0),
+    if let Some(key) = headers.get("x-api-key") {
+        if let Ok(key_str) = key.to_str() {
+            if key_str == expected_key {
+                return Ok(next.run(request).await);
             }
         }
-
-        let density = self.quad_core_processor.compute_absolute_density(&raw_data);
-        let lwe_cipher_output = self.mana_breeder.encrypt_lwe_post_quantum(qkd_key, density);
-
-        match self.redis_client.push_state(&raw_data).await {
-            Ok(_) => ("SUCCESS_DATA_COMMITTED_TO_SOVEREIGN_TIMELINE".to_string(), lwe_cipher_output),
-            Err(_) => ("ERR_CORE_AI_PROTOCOL: REDIS_PERSISTENCE_FAIL".to_string(), 0),
-        }
     }
+
+    warn!("[SECURITY] Akses ditolak: API Key tidak valid atau tidak ditemukan.");
+    Err(StatusCode::UNAUTHORIZED)
 }
 
 // ========================================================
-// INTERFASE JARINGAN: REST API TRANSPORT LAYER
+// 4. STATE APLIKASI GLOBAL
+// ========================================================
+#[derive(Clone)]
+pub struct AppState {
+    pub redis_conn: redis::aio::ConnectionManager,
+    pub crypto_engine: Arc<dyn PostQuantumCrypto>,
+    pub ai_engine: Arc<CoreAiEvolutionEngine>,
+}
+
+// ========================================================
+// 5. REST API DTO & HANDLER
 // ========================================================
 #[derive(Deserialize)]
-struct PacketRequestDto {
-    request_count: u32,
-    raw_data: String,
-    qkd_key: u64,
-    foreign_algo_name: Option<String>,
-    foreign_algo_body: Option<String>,
+pub struct PacketRequestDto {
+    pub request_count: u32,
+    pub raw_data: String,
+    pub qkd_key: u64,
+    pub foreign_algo_name: Option<String>,
+    pub foreign_algo_body: Option<String>,
 }
 
 #[derive(Serialize)]
-struct PacketResponseDto {
-    status: String,
-    active_dimension: usize,
-    lwe_cipher_result: u64,
-    total_assimilated_algorithms: usize,
+pub struct PacketResponseDto {
+    pub status: String,
+    pub active_dimension: usize,
+    pub lwe_cipher_result: u64,
+    pub total_assimilated_algorithms: usize,
 }
 
 async fn handle_secure_packet(
-    Extension(engine_lock): Extension<Arc<RwLock<SovereignCoreEngine>>>,
+    State(state): State<AppState>,
     Json(payload): Json<PacketRequestDto>,
-) -> Json<PacketResponseDto> {
-    let mut engine = engine_lock.write().await;
-    
-    let (process_result, cipher_val) = engine.execute_core_ai_defense_protocol(
-        payload.request_count,
-        payload.raw_data,
-        payload.qkd_key,
-        payload.foreign_algo_name,
-        payload.foreign_algo_body,
-    ).await;
+) -> (StatusCode, Json<PacketResponseDto>) {
+    state.crypto_engine.adapt_dimension(payload.request_count);
 
-    Json(PacketResponseDto {
-        status: process_result,
-        active_dimension: engine.mana_breeder.lattice_dimension,
-        lwe_cipher_result: cipher_val,
-        total_assimilated_algorithms: engine.replicated_signature_registry.len(),
-    })
+    if let (Some(name), Some(body)) = (payload.foreign_algo_name, payload.foreign_algo_body) {
+        state.ai_engine.assimilate(&name, &body).await;
+    }
+
+    let is_qkd_valid = payload.qkd_key != 0 && payload.qkd_key % 2 == 0;
+    if !is_qkd_valid {
+        warn!("[CORE-AI-TEMPORAL] QKD invalid. Protocol freeze active.");
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(PacketResponseDto {
+                status: "ERR_CORE_AI_PROTOCOL: TEMPORAL_FREEZE_ISOLATED".to_string(),
+                active_dimension: state.crypto_engine.current_dimension(),
+                lwe_cipher_result: 0,
+                total_assimilated_algorithms: state.ai_engine.total_assimilated().await,
+            }),
+        );
+    }
+
+    let mut redis_cli = state.redis_conn.clone();
+    if payload.raw_data.contains("QUANTUM_EXPLOIT") {
+        warn!("[CORE-AI-EXPLOIT] Eksploit kuantum terdeteksi. Melakukan rollback.");
+        let _pop_res: Result<Option<String>, _> = redis_cli.rpop("sovereign:absolute_timeline", None).await;
+        return (
+            StatusCode::OK,
+            Json(PacketResponseDto {
+                status: "CORE_AI_PROTOCOL_SUCCESS: TIMELINE_RESTORED_TO_SAFE_PAST".to_string(),
+                active_dimension: state.crypto_engine.current_dimension(),
+                lwe_cipher_result: 0,
+                total_assimilated_algorithms: state.ai_engine.total_assimilated().await,
+            }),
+        );
+    }
+
+    let entropy = payload.raw_data.len() as u64 * 5_000_000_000;
+    let cipher_result = state.crypto_engine.encrypt(payload.qkd_key, entropy);
+
+    let push_res: Result<(), _> = redis_cli.rpush("sovereign:absolute_timeline", &payload.raw_data).await;
+    let assimilated_count = state.ai_engine.total_assimilated().await;
+    let current_dim = state.crypto_engine.current_dimension();
+
+    match push_res {
+        Ok(_) => (
+            StatusCode::OK,
+            Json(PacketResponseDto {
+                status: "SUCCESS_DATA_COMMITTED_TO_SOVEREIGN_TIMELINE".to_string(),
+                active_dimension: current_dim,
+                lwe_cipher_result: cipher_result,
+                total_assimilated_algorithms: assimilated_count,
+            }),
+        ),
+        Err(e) => {
+            error!("[DATABASE-ERROR] Gagal menyimpan ke Redis: {:?}", e);
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(PacketResponseDto {
+                    status: "ERR_CORE_AI_PROTOCOL: REDIS_PERSISTENCE_FAIL".to_string(),
+                    active_dimension: current_dim,
+                    lwe_cipher_result: 0,
+                    total_assimilated_algorithms: assimilated_count,
+                }),
+            )
+        }
+    }
 }
 
+// ========================================================
+// 6. GRACEFUL SHUTDOWN HANDLER
+// ========================================================
+async fn shutdown_signal() {
+    let ctrl_c = async {
+        signal::ctrl_c()
+            .await
+            .expect("Gagal memasang signal handler Ctrl+C");
+    };
+
+    #[cfg(unix)]
+    let terminate = async {
+        signal::unix::signal(signal::unix::SignalKind::terminate())
+            .expect("Gagal memasang signal handler SIGTERM")
+            .recv()
+            .await;
+    };
+
+    #[cfg(not(unix))]
+    let terminate = std::future::pending::<()>();
+
+    tokio::select! {
+        _ = ctrl_c => info!("[SYSTEM] Sinyal Ctrl+C diterima. Memulai Graceful Shutdown..."),
+        _ = terminate => info!("[SYSTEM] Sinyal SIGTERM diterima. Memulai Graceful Shutdown..."),
+    }
+}
+
+// ========================================================
+// 7. ENTRY POINT APLIKASI
+// ========================================================
 #[tokio::main]
 async fn main() {
-    let redis_url = "redis://127.0.0.1:6379";
-    let core_engine = SovereignCoreEngine::new(512, redis_url);
-    let shared_state = Arc::new(RwLock::new(core_engine));
+    tracing_subscriber::fmt::init();
+
+    let redis_url = env::var("REDIS_URL").unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
+    let port = env::var("PORT").unwrap_or_else(|_| "8080".to_string());
+
+    let client = redis::Client::open(redis_url.as_str()).expect("URL Redis Tidak Valid");
+    let redis_conn = redis::aio::ConnectionManager::new(client)
+        .await
+        .expect("Gagal menghubungkan ke Redis");
+
+    let state = AppState {
+        redis_conn,
+        crypto_engine: Arc::new(LatticeLweEngine::new(512)),
+        ai_engine: Arc::new(CoreAiEvolutionEngine::new()),
+    };
 
     let app = Router::new()
         .route("/api/v1/temporal/process", post(handle_secure_packet))
-        .layer(Extension(shared_state));
+        .layer(middleware::from_fn(api_key_auth))
+        .with_state(state);
 
-    let addr = SocketAddr::from(([127, 0, 0, 1], 8080));
-    println!("[SISTEM-AKTIF] Manajemen CORE AI & LWE Post-Quantum aktif di http://{}", addr);
+    let addr_str = format!("0.0.0.0:{}", port);
+    let addr: SocketAddr = addr_str.parse().expect("Format socket gagal");
+
+    info!("[CORE-AI-SYSTEM] Engine Kompatibilitas Enterprise aktif di http://{}", addr);
 
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
-    axum::serve(listener, app).await.unwrap();
+    
+    axum::serve(listener, app)
+        .with_graceful_shutdown(shutdown_signal())
+        .await
+        .unwrap();
 }
