@@ -33,7 +33,7 @@ impl QuadQuantumCore {
 }
 
 // ========================================================
-// SUB-SISTEM 2: MANA BREEDER ENGINE (ADAPTIVE REACTOR)
+// SUB-SISTEM 2: ADAPTIVE REACTOR ENGINE
 // ========================================================
 struct ManaBreederEngine {
     _magicules_pool: u64,
@@ -60,7 +60,7 @@ impl ManaBreederEngine {
         if attack_intensity > 1000 && self.lattice_dimension == 512 {
             self.lattice_dimension = 1024;
             self.modulus_q += 50_000;
-            println!("[MANA-BREEDER] Beban tinggi terdeteksi! CIEL memperluas kisi ke Dimensi 1024.");
+            println!("[REACTOR-ENGINE] Beban tinggi terdeteksi! CORE AI memperluas kisi ke Dimensi 1024.");
         }
     }
 }
@@ -81,19 +81,19 @@ impl RedisTimelineClient {
 
     async fn push_state(&self, payload: &str) -> Result<(), redis::RedisError> {
         let mut con = self.client.get_async_connection().await?;
-        let _: () = con.rpush("rimuru:absolute_timeline", payload).await?;
+        let _: () = con.rpush("sovereign:absolute_timeline", payload).await?;
         Ok(())
     }
 
     async fn pop_corrupted_state(&self) -> Result<(), redis::RedisError> {
         let mut con = self.client.get_async_connection().await?;
-        let _: Option<String> = con.rpop("rimuru:absolute_timeline", None).await?;
+        let _: Option<String> = con.rpop("sovereign:absolute_timeline", None).await?;
         Ok(())
     }
 }
 
 // ========================================================
-// ARSITEKTUR UTAMA: SOVEREIGN REACTION ENGINE (MANAGED BY CIEL)
+// ARSITEKTUR UTAMA: SOVEREIGN REACTION ENGINE (MANAGED BY CORE AI)
 // ========================================================
 struct SovereignCoreEngine {
     redis_client: RedisTimelineClient,
@@ -112,16 +112,16 @@ impl SovereignCoreEngine {
         }
     }
 
-    pub fn ciel_asimilate_foreign_algorithm(&mut self, source_name: &str, algorithm_payload: &str) {
-        println!("[CIEL-ANALYSIS] Memindai struktur algoritma luar. Memulai proses replikasi...");
+    pub fn core_ai_assimilate_foreign_algorithm(&mut self, source_name: &str, algorithm_payload: &str) {
+        println!("[CORE-AI-ANALYSIS] Memindai struktur algoritma luar. Memulai proses replikasi...");
         self.replicated_signature_registry.insert(
             source_name.to_string(), 
-            format!("{}_REPLICATED_BY_CIEL_OPTIMIZATION", algorithm_payload)
+            format!("{}_REPLICATED_BY_CORE_AI_OPTIMIZATION", algorithm_payload)
         );
-        println!("[CIEL-SYSTEM] Sukses menyalin kode. Algoritma '{}' dikuasai penuh.", source_name);
+        println!("[CORE-AI-SYSTEM] Sukses menyalin kode. Algoritma '{}' dikuasai penuh.", source_name);
     }
 
-    pub async fn execute_ciel_defense_protocol(
+    pub async fn execute_core_ai_defense_protocol(
         &mut self, 
         request_count: u32, 
         raw_data: String, 
@@ -132,30 +132,29 @@ impl SovereignCoreEngine {
         self.mana_breeder.adapt_reactor_power(request_count);
 
         if let (Some(name), Some(body)) = (foreign_name, foreign_body) {
-            self.ciel_asimilate_foreign_algorithm(&name, &body);
+            self.core_ai_assimilate_foreign_algorithm(&name, &body);
         }
 
         let is_qkd_valid = qkd_key != 0 && qkd_key % 2 == 0;
         if !is_qkd_valid {
-            println!("[CIEL-TEMPORAL] Tanda tangan kuantum palsu! Mengaktifkan Temporal Freeze.");
-            return ("ERR_CIEL_PROTOCOL: TEMPORAL_FREEZE_ISOLATED".to_string(), 0);
+            println!("[CORE-AI-TEMPORAL] Tanda tangan kuantum palsu! Mengaktifkan Temporal Freeze.");
+            return ("ERR_CORE_AI_PROTOCOL: TEMPORAL_FREEZE_ISOLATED".to_string(), 0);
         }
 
         if raw_data.contains("QUANTUM_EXPLOIT") {
-            println!("[CIEL-PROYEKSI] Anomali terdeteksi! Menjalankan Past Rollback.");
+            println!("[CORE-AI-PROJECTION] Anomali terdeteksi! Menjalankan Past Rollback.");
             match self.redis_client.pop_corrupted_state().await {
-                Ok(_) => return ("CIEL_PROTOCOL_SUCCESS: TIMELINE_RESTORED_TO_SAFE_PAST".to_string(), 0),
-                Err(_) => return ("ERR_CIEL_PROTOCOL: DATABASE_ROLLBACK_FAILED".to_string(), 0),
+                Ok(_) => return ("CORE_AI_PROTOCOL_SUCCESS: TIMELINE_RESTORED_TO_SAFE_PAST".to_string(), 0),
+                Err(_) => return ("ERR_CORE_AI_PROTOCOL: DATABASE_ROLLBACK_FAILED".to_string(), 0),
             }
         }
 
-        // Menggunakan quad_core_processor secara aktif
         let density = self.quad_core_processor.compute_absolute_density(&raw_data);
         let lwe_cipher_output = self.mana_breeder.encrypt_lwe_post_quantum(qkd_key, density);
 
         match self.redis_client.push_state(&raw_data).await {
             Ok(_) => ("SUCCESS_DATA_COMMITTED_TO_SOVEREIGN_TIMELINE".to_string(), lwe_cipher_output),
-            Err(_) => ("ERR_CIEL_PROTOCOL: REDIS_PERSISTENCE_FAIL".to_string(), 0),
+            Err(_) => ("ERR_CORE_AI_PROTOCOL: REDIS_PERSISTENCE_FAIL".to_string(), 0),
         }
     }
 }
@@ -186,7 +185,7 @@ async fn handle_secure_packet(
 ) -> Json<PacketResponseDto> {
     let mut engine = engine_lock.write().await;
     
-    let (process_result, cipher_val) = engine.execute_ciel_defense_protocol(
+    let (process_result, cipher_val) = engine.execute_core_ai_defense_protocol(
         payload.request_count,
         payload.raw_data,
         payload.qkd_key,
@@ -213,7 +212,7 @@ async fn main() {
         .layer(Extension(shared_state));
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 8080));
-    println!("[SISTEM-AKTIF] Manajemen AI CIEL & LWE Post-Quantum aktif di http://{}", addr);
+    println!("[SISTEM-AKTIF] Manajemen CORE AI & LWE Post-Quantum aktif di http://{}", addr);
 
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();
