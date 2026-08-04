@@ -1,86 +1,220 @@
-use std::sync::{Arc, Mutex};
-use std::thread;
-use std::time::Duration;
+use axum::{routing::post, Json, Router, Extension};
+use serde::{Deserialize, Serialize};
+use std::sync::Arc;
+use tokio::sync::RwLock;
+use std::net::SocketAddr;
+use std::collections::HashMap;
+use redis::AsyncCommands;
 
-pub struct SoulCorridor {
-    pub entity_name: String,
-    pub shared_magicules: Arc<Mutex<u32>>,
+// ========================================================
+// SUB-SISTEM 1: QUAD-CORE QUANTUM ACCELERATOR (ELPIS CORE)
+// ========================================================
+struct QuadQuantumCore {
+    chaos_storm_entropy: u64,
+    acceleration_speed_hz: u64,
+    _fixation_freeze_state: bool,
+    _genesis_creation_pool: u64,
 }
 
-impl SoulCorridor {
-    pub fn new(name: &str, initial_energy: u32) -> Self {
-        SoulCorridor {
-            entity_name: name.to_string(),
-            shared_magicules: Arc::new(Mutex::new(initial_energy)),
+impl QuadQuantumCore {
+    fn initialize() -> Self {
+        QuadQuantumCore {
+            chaos_storm_entropy: 0x_F1A2_B3C4_D5E6_F7F8,
+            acceleration_speed_hz: 5_000_000_000, 
+            _fixation_freeze_state: false,
+            _genesis_creation_pool: 0,
         }
     }
 
-    pub fn transmit_will(&self, command: &str) {
-        let energy = *self.shared_magicules.lock().unwrap();
-        println!("[SOUL CORRIDOR ACTIVE]: Koneksi terhubung ke entitas [{}]", self.entity_name);
-        println!("   -> Perintah Core Transmitted: '{}'", command);
-        println!("   -> Sinkronisasi Magicule Level: {}\n", energy);
+    fn compute_absolute_density(&self, raw_input: &str) -> u64 {
+        let base_hash = raw_input.len() as u64 * self.acceleration_speed_hz;
+        base_hash ^ self.chaos_storm_entropy
     }
 }
 
-fn main() {
-    println!("=== INISIALISASI KORIDOR JIWA (SOUL CORRIDOR NETWORK) ===");
+// ========================================================
+// SUB-SISTEM 2: MANA BREEDER ENGINE (ADAPTIVE REACTOR)
+// ========================================================
+struct ManaBreederEngine {
+    _magicules_pool: u64,
+    lattice_dimension: usize,
+    modulus_q: u64,
+}
 
-    let corridor = Arc::new(SoulCorridor::new("Veldora_Sub_Node", 999999));
-    let corridor_clone = Arc::clone(&corridor);
+impl ManaBreederEngine {
+    fn new(initial_dimension: usize) -> Self {
+        ManaBreederEngine {
+            _magicules_pool: 100_000,
+            lattice_dimension: initial_dimension,
+            modulus_q: 8388593,
+        }
+    }
+
+    pub fn encrypt_lwe_post_quantum(&self, secret_seed: u64, error_vector: u64) -> u64 {
+        let matrix_a_approx = 1103515245_u64;
+        let computed_b = (matrix_a_approx.wrapping_mul(secret_seed).wrapping_add(error_vector)) % self.modulus_q;
+        computed_b
+    }
+
+    pub fn adapt_reactor_power(&mut self, attack_intensity: u32) {
+        if attack_intensity > 1000 && self.lattice_dimension == 512 {
+            self.lattice_dimension = 1024;
+            self.modulus_q += 50_000;
+            println!("[MANA-BREEDER] Beban tinggi terdeteksi! CIEL memperluas kisi ke Dimensi 1024.");
+        }
+    }
+}
+
+// ========================================================
+// SUB-SISTEM 3: MEMORI LINIMASA PERSISTEN (REDIS ENGINE)
+// ========================================================
+#[derive(Clone)]
+struct RedisTimelineClient {
+    client: redis::Client,
+}
+
+impl RedisTimelineClient {
+    fn new(redis_url: &str) -> Self {
+        let client = redis::Client::open(redis_url).expect("Gagal inisialisasi database Redis");
+        RedisTimelineClient { client }
+    }
+
+    async fn push_state(&self, payload: &str) -> Result<(), redis::RedisError> {
+        let mut con = self.client.get_async_connection().await?;
+        let _: () = con.rpush("rimuru:absolute_timeline", payload).await?;
+        Ok(())
+    }
+
+    async fn pop_corrupted_state(&self) -> Result<(), redis::RedisError> {
+        let mut con = self.client.get_async_connection().await?;
+        let _: Option<String> = con.rpop("rimuru:absolute_timeline", None).await?;
+        Ok(())
+    }
+}
+
+// ========================================================
+// ARSITEKTUR UTAMA: SOVEREIGN REACTION ENGINE (MANAGED BY CIEL)
+// ========================================================
+struct SovereignCoreEngine {
+    redis_client: RedisTimelineClient,
+    quad_core_processor: QuadQuantumCore,
+    mana_breeder: ManaBreederEngine,
+    replicated_signature_registry: HashMap<String, String>,
+}
+
+impl SovereignCoreEngine {
+    fn new(n: usize, redis_url: &str) -> Self {
+        SovereignCoreEngine {
+            redis_client: RedisTimelineClient::new(redis_url),
+            quad_core_processor: QuadQuantumCore::initialize(),
+            mana_breeder: ManaBreederEngine::new(n),
+            replicated_signature_registry: HashMap::new(),
+        }
+    }
+
+    pub fn ciel_asimilate_foreign_algorithm(&mut self, source_name: &str, algorithm_payload: &str) {
+        println!("[CIEL-ANALYSIS] Memindai struktur algoritma luar. Memulai proses replikasi...");
+        self.replicated_signature_registry.insert(
+            source_name.to_string(), 
+            format!("{}_REPLICATED_BY_CIEL_OPTIMIZATION", algorithm_payload)
+        );
+        println!("[CIEL-SYSTEM] Sukses menyalin kode. Algoritma '{}' dikuasai penuh.", source_name);
+    }
+
+    pub async fn execute_ciel_defense_protocol(
+        &mut self, 
+        request_count: u32, 
+        raw_data: String, 
+        qkd_key: u64, 
+        foreign_name: Option<String>, 
+        foreign_body: Option<String>
+    ) -> (String, u64) {
+        self.mana_breeder.adapt_reactor_power(request_count);
+
+        if let (Some(name), Some(body)) = (foreign_name, foreign_body) {
+            self.ciel_asimilate_foreign_algorithm(&name, &body);
+        }
+
+        let is_qkd_valid = qkd_key != 0 && qkd_key % 2 == 0;
+        if !is_qkd_valid {
+            println!("[CIEL-TEMPORAL] Tanda tangan kuantum palsu! Mengaktifkan Temporal Freeze.");
+            return ("ERR_CIEL_PROTOCOL: TEMPORAL_FREEZE_ISOLATED".to_string(), 0);
+        }
+
+        if raw_data.contains("QUANTUM_EXPLOIT") {
+            println!("[CIEL-PROYEKSI] Anomali terdeteksi! Menjalankan Past Rollback.");
+            match self.redis_client.pop_corrupted_state().await {
+                Ok(_) => return ("CIEL_PROTOCOL_SUCCESS: TIMELINE_RESTORED_TO_SAFE_PAST".to_string(), 0),
+                Err(_) => return ("ERR_CIEL_PROTOCOL: DATABASE_ROLLBACK_FAILED".to_string(), 0),
+            }
+        }
+
+        // Menggunakan quad_core_processor secara aktif
+        let density = self.quad_core_processor.compute_absolute_density(&raw_data);
+        let lwe_cipher_output = self.mana_breeder.encrypt_lwe_post_quantum(qkd_key, density);
+
+        match self.redis_client.push_state(&raw_data).await {
+            Ok(_) => ("SUCCESS_DATA_COMMITTED_TO_SOVEREIGN_TIMELINE".to_string(), lwe_cipher_output),
+            Err(_) => ("ERR_CIEL_PROTOCOL: REDIS_PERSISTENCE_FAIL".to_string(), 0),
+        }
+    }
+}
+
+// ========================================================
+// INTERFASE JARINGAN: REST API TRANSPORT LAYER
+// ========================================================
+#[derive(Deserialize)]
+struct PacketRequestDto {
+    request_count: u32,
+    raw_data: String,
+    qkd_key: u64,
+    foreign_algo_name: Option<String>,
+    foreign_algo_body: Option<String>,
+}
+
+#[derive(Serialize)]
+struct PacketResponseDto {
+    status: String,
+    active_dimension: usize,
+    lwe_cipher_result: u64,
+    total_assimilated_algorithms: usize,
+}
+
+async fn handle_secure_packet(
+    Extension(engine_lock): Extension<Arc<RwLock<SovereignCoreEngine>>>,
+    Json(payload): Json<PacketRequestDto>,
+) -> Json<PacketResponseDto> {
+    let mut engine = engine_lock.write().await;
     
-    let handle = thread::spawn(move || {
-        thread::sleep(Duration::from_millis(100));
-        corridor_clone.transmit_will("Inisialisasi Badai Kehampaan (Turn Null Sync)");
-    });
+    let (process_result, cipher_val) = engine.execute_ciel_defense_protocol(
+        payload.request_count,
+        payload.raw_data,
+        payload.qkd_key,
+        payload.foreign_algo_name,
+        payload.foreign_algo_body,
+    ).await;
 
-    println!("[CORE]: Menunggu umpan balik dari Koridor Jiwa...");
-    
-    handle.join().unwrap();
-    println!("=== KONEKSI KORIDOR JIWA STABIL DAN BERTAHAN ABADI ===");
-}
-use std::sync::{Arc, Mutex};
-use std::thread;
-use std::time::Duration;
-
-#[derive(Debug)]
-struct QRAACore {
-    tier: u8,
-    magicules: u32,
+    Json(PacketResponseDto {
+        status: process_result,
+        active_dimension: engine.mana_breeder.lattice_dimension,
+        lwe_cipher_result: cipher_val,
+        total_assimilated_algorithms: engine.replicated_signature_registry.len(),
+    })
 }
 
-fn main() {
-    println!("🚀 Initializing QRAA Architecture: Autonomous Cognitive Core...");
+#[tokio::main]
+async fn main() {
+    let redis_url = "redis://127.0.0.1:6379";
+    let core_engine = SovereignCoreEngine::new(512, redis_url);
+    let shared_state = Arc::new(RwLock::new(core_engine));
 
-    // Inisialisasi core dengan manajemen energi awal
-    let core = Arc::new(Mutex::new(QRAACore {
-        tier: 1,
-        magicules: 1000,
-    }));
+    let app = Router::new()
+        .route("/api/v1/temporal/process", post(handle_secure_packet))
+        .layer(Extension(shared_state));
 
-    let mut handles = vec![];
+    let addr = SocketAddr::from(([127, 0, 0, 1], 8080));
+    println!("[SISTEM-AKTIF] Manajemen AI CIEL & LWE Post-Quantum aktif di http://{}", addr);
 
-    // Soul Corridor: Simulasi konkurensi asinkron menggunakan Arc<Mutex<T>>
-    for i in 1..=3 {
-        let core_clone = Arc::clone(&core);
-        let handle = thread::spawn(move || {
-            thread::sleep(Duration::from_millis(400 * i));
-            let mut data = core_clone.lock().unwrap();
-            data.tier += 1;
-            data.magicules += 750 * i as u32;
-            println!(
-                "⚡ [Soul Corridor Thread {}] Evolutionary Tier updated to: {} | Magicules allocated: {}",
-                i, data.tier, data.magicules
-            );
-        });
-        handles.push(handle);
-    }
-
-    // Menunggu seluruh thread selesai mengeksekusi
-    for handle in handles {
-        handle.join().unwrap();
-    }
-
-    let final_state = core.lock().unwrap();
-    println!("✨ Final Singularity Matrix State -> Tier: {}, Total Magicules: {}", final_state.tier, final_state.magicules);
+    let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
+    axum::serve(listener, app).await.unwrap();
 }
