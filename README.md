@@ -15,6 +15,4 @@ cargo build --release
 ## 🪙 Dukung via Kripto (Crypto)
 Jika Anda ingin memberikan apresiasi melalui aset kripto, Anda dapat mengirimkannya ke alamat berikut:
 
-- **Bitcoin (BTC):** `13n5uB2SHfKCDg4GnZUnec1o32TYRfku`
-- **Ethereum / USDT (ERC-20):** `0x44fd99c7acd2ff83ef33d03f9768e9244fa81c39`
-- **Solana (SOL):** `H9gBttSKccjQWbAq8V7o9TigCo3eM9HTiAY5nh5VbWEK`
+* **USDT (Base Network)**:`0x133500AE0CAbAD8Bf64a2AaAA6BAc4b83c43Ed97`
