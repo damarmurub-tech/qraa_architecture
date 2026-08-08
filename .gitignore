@@ -1,1 +1,10 @@
 /target
+# =====================================================================
+# SECURITY COMPARTMENTALIZATION (DINDING PENGAMAN SEKTOR RAHASIA)
+# =====================================================================
+# Mengunci folder dokumentasi alur cerita agar tidak bocor ke GitHub.
+# Hanya pengembang utama (Anda) yang memiliki akses lokal ke modul ini.
+rahasia_qraa/
+
+# Mengunci file cadangan atau draf narasi per bab
+*.draft
